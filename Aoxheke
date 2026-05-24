@@ -160,27 +160,4 @@ flyButton.MouseButton1Click:Connect(function()
 		flyButton.Text = "Fly: ON"
 		flyButton.BackgroundColor3 = Color3.fromRGB(0,170,0)
 	else
-		disableFly()
-		flyButton.Text = "Fly: OFF"
-		flyButton.BackgroundColor3 = Color3.fromRGB(170,0,0)
-	end
-end)
-
--- Toggle Noclip
-noclipButton.MouseButton1Click:Connect(function()
-	noclipEnabled = not noclipEnabled
-
-	if noclipEnabled then
-		noclipButton.Text = "Noclip: ON"
-		noclipButton.BackgroundColor3 = Color3.fromRGB(0,170,0)
-	else
-		noclipButton.Text = "Noclip: OFF"
-		noclipButton.BackgroundColor3 = Color3.fromRGB(170,0,0)
-
-		for _, part in pairs(character:GetDescendants()) do
-			if part:IsA("BasePart") then
-				part.CanCollide = true
-			end
-		end
-	end
-end)
+		disableF
