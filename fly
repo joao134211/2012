@@ -1,0 +1,273 @@
+-- LocalScript (StarterPlayer > StarterPlayerScripts)
+
+local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
+local UserInputService = game:GetService("UserInputService")
+
+local player = Players.LocalPlayer
+local camera = workspace.CurrentCamera
+
+local character
+local humanoid
+local hrp
+
+-- Estados
+local flyEnabled = false
+local noclipEnabled = false
+
+-- Fly
+local bodyVelocity
+local bodyGyro
+local flySpeed = 60
+
+-- GUI
+local gui = Instance.new("ScreenGui")
+gui.Name = "FlyNoclipGUI"
+gui.ResetOnSpawn = false
+gui.Parent = player:WaitForChild("PlayerGui")
+
+-- Botão Toggle da Interface
+local toggleButton = Instance.new("TextButton")
+toggleButton.Size = UDim2.new(0,40,0,40)
+toggleButton.Position = UDim2.new(0,20,0.5,-20)
+toggleButton.BackgroundColor3 = Color3.fromRGB(0,0,0)
+toggleButton.Text = "VT"
+toggleButton.TextColor3 = Color3.new(1,1,1)
+toggleButton.TextScaled = true
+toggleButton.Parent = gui
+
+Instance.new("UICorner", toggleButton)
+
+-- Frame principal
+local frame = Instance.new("Frame")
+frame.Size = UDim2.new(0,220,0,130)
+frame.Position = UDim2.new(0.5,-110,0.5,-65)
+frame.BackgroundColor3 = Color3.fromRGB(35,35,35)
+frame.BorderSizePixel = 0
+frame.Active = true
+frame.Draggable = true
+frame.Parent = gui
+
+Instance.new("UICorner", frame)
+
+-- Título
+local title = Instance.new("TextLabel")
+title.Size = UDim2.new(1,-10,0,25)
+title.Position = UDim2.new(0,5,0,5)
+title.BackgroundTransparency = 1
+title.Text = "VT Hub"
+title.TextColor3 = Color3.new(1,1,1)
+title.TextScaled = true
+title.Font = Enum.Font.GothamBold
+title.TextXAlignment = Enum.TextXAlignment.Left
+title.Parent = frame
+
+-- Botão Fly
+local flyButton = Instance.new("TextButton")
+flyButton.Size = UDim2.new(0,180,0,40)
+flyButton.Position = UDim2.new(0.5,-90,0,35)
+flyButton.Text = "Fly: OFF"
+flyButton.TextScaled = true
+flyButton.BackgroundColor3 = Color3.fromRGB(170,0,0)
+flyButton.TextColor3 = Color3.new(1,1,1)
+flyButton.Parent = frame
+
+Instance.new("UICorner", flyButton)
+
+-- Botão Noclip
+local noclipButton = Instance.new("TextButton")
+noclipButton.Size = UDim2.new(0,180,0,40)
+noclipButton.Position = UDim2.new(0.5,-90,0,80)
+noclipButton.Text = "Noclip: OFF"
+noclipButton.TextScaled = true
+noclipButton.BackgroundColor3 = Color3.fromRGB(170,0,0)
+noclipButton.TextColor3 = Color3.new(1,1,1)
+noclipButton.Parent = frame
+
+Instance.new("UICorner", noclipButton)
+
+-- Atualiza personagem
+local function setupCharacter(char)
+	character = char
+	humanoid = character:WaitForChild("Humanoid")
+	hrp = character:WaitForChild("HumanoidRootPart")
+
+	-- Resetar estados
+	flyEnabled = false
+	noclipEnabled = false
+
+	if bodyVelocity then
+		bodyVelocity:Destroy()
+		bodyVelocity = nil
+	end
+
+	if bodyGyro then
+		bodyGyro:Destroy()
+		bodyGyro = nil
+	end
+
+	flyButton.Text = "Fly: OFF"
+	flyButton.BackgroundColor3 = Color3.fromRGB(170,0,0)
+
+	noclipButton.Text = "Noclip: OFF"
+	noclipButton.BackgroundColor3 = Color3.fromRGB(170,0,0)
+end
+
+setupCharacter(player.Character or player.CharacterAdded:Wait())
+player.CharacterAdded:Connect(setupCharacter)
+
+-- Ativar Fly
+local function enableFly()
+
+	if not hrp then return end
+
+	bodyVelocity = Instance.new("BodyVelocity")
+	bodyVelocity.MaxForce = Vector3.new(math.huge, math.huge, math.huge)
+	bodyVelocity.Velocity = Vector3.zero
+	bodyVelocity.Parent = hrp
+
+	bodyGyro = Instance.new("BodyGyro")
+	bodyGyro.MaxTorque = Vector3.new(math.huge, math.huge, math.huge)
+	bodyGyro.P = 10000
+	bodyGyro.CFrame = hrp.CFrame
+	bodyGyro.Parent = hrp
+
+	humanoid:ChangeState(Enum.HumanoidStateType.Physics)
+end
+
+-- Desativar Fly
+local function disableFly()
+
+	if bodyVelocity then
+		bodyVelocity:Destroy()
+		bodyVelocity = nil
+	end
+
+	if bodyGyro then
+		bodyGyro:Destroy()
+		bodyGyro = nil
+	end
+
+	if humanoid then
+		humanoid:ChangeState(Enum.HumanoidStateType.GettingUp)
+	end
+end
+
+-- Movimento Fly
+RunService.RenderStepped:Connect(function()
+
+	if flyEnabled and bodyVelocity and bodyGyro and hrp then
+
+		local moveDirection = Vector3.zero
+		local camCF = camera.CFrame
+
+		if UserInputService:IsKeyDown(Enum.KeyCode.W) then
+			moveDirection += camCF.LookVector
+		end
+
+		if UserInputService:IsKeyDown(Enum.KeyCode.S) then
+			moveDirection -= camCF.LookVector
+		end
+
+		if UserInputService:IsKeyDown(Enum.KeyCode.A) then
+			moveDirection -= camCF.RightVector
+		end
+
+		if UserInputService:IsKeyDown(Enum.KeyCode.D) then
+			moveDirection += camCF.RightVector
+		end
+
+		if UserInputService:IsKeyDown(Enum.KeyCode.Space) then
+			moveDirection += Vector3.new(0,1,0)
+		end
+
+		if UserInputService:IsKeyDown(Enum.KeyCode.LeftShift) then
+			moveDirection -= Vector3.new(0,1,0)
+		end
+
+		if moveDirection.Magnitude > 0 then
+
+			local targetVelocity = moveDirection.Unit * flySpeed
+
+			bodyVelocity.Velocity = bodyVelocity.Velocity:Lerp(
+				targetVelocity,
+				0.15
+			)
+
+		else
+			bodyVelocity.Velocity = Vector3.zero
+		end
+
+		bodyGyro.CFrame = camera.CFrame
+	end
+end)
+
+-- Noclip
+RunService.Stepped:Connect(function()
+
+	if noclipEnabled and character then
+
+		for _, part in ipairs(character:GetDescendants()) do
+
+			if part:IsA("BasePart") then
+				part.CanCollide = false
+			end
+		end
+	end
+end)
+
+-- Toggle Interface
+local uiVisible = true
+
+toggleButton.MouseButton1Click:Connect(function()
+	uiVisible = not uiVisible
+	frame.Visible = uiVisible
+end)
+
+-- Toggle Fly
+flyButton.MouseButton1Click:Connect(function()
+
+	flyEnabled = not flyEnabled
+
+	if flyEnabled then
+
+		enableFly()
+
+		flyButton.Text = "Fly: ON"
+		flyButton.BackgroundColor3 = Color3.fromRGB(0,170,0)
+
+	else
+
+		disableFly()
+
+		flyButton.Text = "Fly: OFF"
+		flyButton.BackgroundColor3 = Color3.fromRGB(170,0,0)
+	end
+end)
+
+-- Toggle Noclip
+noclipButton.MouseButton1Click:Connect(function()
+
+	noclipEnabled = not noclipEnabled
+
+	if noclipEnabled then
+
+		noclipButton.Text = "Noclip: ON"
+		noclipButton.BackgroundColor3 = Color3.fromRGB(0,170,0)
+
+	else
+
+		noclipButton.Text = "Noclip: OFF"
+		noclipButton.BackgroundColor3 = Color3.fromRGB(170,0,0)
+
+		if character then
+
+			for _, part in ipairs(character:GetDescendants()) do
+
+				if part:IsA("BasePart") then
+					part.CanCollide = true
+				end
+			end
+		end
+	end
+end)
